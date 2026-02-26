@@ -12,7 +12,7 @@ player only when a restart is actually needed, so the transition is seamless.
 ## Files
 
 ```
-~/Code/sourcesound-restart/
+<repo>/
 ├── sourcesound-restart.sh      # Main daemon — runs continuously in the background
 └── sourcesound-install.sh      # Helper to install / uninstall / check status
 
@@ -76,7 +76,8 @@ seconds, and restarts the moment it appears.
 3. Install and start the service:
 
    ```bash
-   ~/Code/sourcesound-restart/sourcesound-install.sh install
+   cd /path/to/sourcesound-restart
+   ./sourcesound-install.sh install
    ```
 
 > SoundSource should be in **System Settings → General → Login Items** so it relaunches

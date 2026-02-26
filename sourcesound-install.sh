@@ -21,6 +21,8 @@ install() {
     chmod +x "$SCRIPT"
     green "✓ Script is executable"
 
+    mkdir -p "$HOME/Library/LaunchAgents"
+
     # Generate plist with the actual script location
     cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
