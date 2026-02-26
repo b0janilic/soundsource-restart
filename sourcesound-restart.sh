@@ -17,6 +17,8 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 CONFIG_FILE="${HOME}/.config/sourcesound-restart/config"
 LOG_FILE="${HOME}/.config/sourcesound-restart/sourcesound-restart.log"
 
+mkdir -p "${HOME}/.config/sourcesound-restart"
+
 # ── Defaults ──────────────────────────────────────────────────────────────────
 TRIAL_INTERVAL=1200      # SoundSource trial noise fires every 20 min (1200s)
 RESTART_MARGIN=90        # restart when this many seconds remain before trial noise

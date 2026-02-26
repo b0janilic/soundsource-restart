@@ -2,7 +2,8 @@
 # Install / uninstall the SourceSound restart service
 set -euo pipefail
 
-SCRIPT="$HOME/Code/sourcesound-restart/sourcesound-restart.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT="$SCRIPT_DIR/sourcesound-restart.sh"
 PLIST="$HOME/Library/LaunchAgents/com.user.sourcesound-restart.plist"
 LABEL="com.user.sourcesound-restart"
 CONFIG_DIR="$HOME/.config/sourcesound-restart"
@@ -14,8 +15,53 @@ red()    { echo -e "\033[31m$*\033[0m"; }
 install() {
     green "=== Installing SourceSound restart service ==="
 
+    mkdir -p "$CONFIG_DIR"
+    green "✓ Config directory: $CONFIG_DIR"
+
     chmod +x "$SCRIPT"
     green "✓ Script is executable"
+
+    # Generate plist with the actual script location
+    cat > "$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>$LABEL</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>$SCRIPT</string>
+    </array>
+
+    <!-- Keep the daemon alive if it crashes or exits -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Start on login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart delay after crash (seconds) -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Log stdout/stderr -->
+    <key>StandardOutPath</key>
+    <string>$CONFIG_DIR/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>$CONFIG_DIR/launchd.log</string>
+
+    <!-- Only run when on AC or battery — no restrictions -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
+EOF
+    green "✓ LaunchAgent plist generated: $PLIST"
 
     # Load the LaunchAgent
     if launchctl list "$LABEL" &>/dev/null 2>&1; then
