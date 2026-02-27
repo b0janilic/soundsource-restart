@@ -153,7 +153,13 @@ smartrestart_mode() {
                 media-control pause 2>/dev/null || true
                 do_restart
                 media-control play 2>/dev/null || true
-                last_track=""
+                # Fetch current song to prevent immediate proactive re-restart for the same song
+                last_track=$(media-control get 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+p = d.get('payload', d)
+print(p.get('title') or '')
+" 2>/dev/null || echo "")
                 continue
             fi
 
