@@ -1,11 +1,11 @@
 class SourcesoundRestart < Formula
   desc "Automatically restarts SoundSource before trial-mode noise kicks in"
-  homepage "https://github.com/b0janilic/sourcesound-restart"
-  url "https://github.com/b0janilic/sourcesound-restart/archive/refs/tags/v1.0.1.tar.gz"
-  sha256 "FIXME" # fill in after: shasum -a 256 <downloaded-tarball>
+  homepage "https://github.com/b0janilic/soundsource-restart"
+  url "https://github.com/b0janilic/soundsource-restart/archive/refs/tags/v1.0.1.tar.gz"
+  sha256 "b6622e80383519894c7b9595ecdd705f6162437225194159a74fb2119c165f11"
   license "MIT"
 
-  head "https://github.com/b0janilic/sourcesound-restart.git", branch: "main"
+  head "https://github.com/b0janilic/soundsource-restart.git", branch: "main"
 
   depends_on :macos
 
