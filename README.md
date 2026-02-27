@@ -4,79 +4,33 @@ Automatically restarts SoundSource before the trial mode noise kicks in (~20 min
 
 ## The Problem
 
-SoundSource's trial mode injects white noise and disables all audio processing every ~20 minutes.
-If you use parametric EQ with a negative preamp, this causes a sudden volume spike when the PEQ
-is bypassed. This script restarts the app proactively, before that happens — pausing your music
-player only when a restart is actually needed, so the transition is seamless.
+SoundSource's trial mode injects unbearable white noise every ~20 minutes, forcing you to manually
+restart the app. If you use parametric EQ with a negative preamp (e.g. for EQ correction), this
+restart causes a volume spike — the PEQ is momentarily inactive while SoundSource relaunches, and
+USB DACs that ignore macOS software volume control have no way to compensate.
 
-## Files
+Without `media-control`, this script automates exactly what you'd do manually: waits for the trial
+popup, restarts SoundSource. Same result, no human needed — but the volume spike still applies.
 
-```
-<repo>/
-├── sourcesound-restart.sh      # Main daemon — runs continuously in the background
-└── sourcesound-install.sh      # Helper to install / uninstall / check status
-
-~/.config/sourcesound-restart/
-├── config                      # Optional overrides for the variables below
-├── sourcesound-restart.log     # Script log
-└── launchd.log                 # Raw stdout/stderr from launchd
-
-~/Library/LaunchAgents/
-└── com.user.sourcesound-restart.plist   # launchd service definition (must live here)
-```
-
----
-
-## How It Works
-
-The mode is **auto-detected at startup** based on whether `media-control` is installed.
-
-### With `media-control` (recommended)
-
-Listens to the `media-control` event stream. At each new song:
-
-1. Checks if `elapsed_since_restart + new_song_duration` would exceed the trial window
-2. If yes → pauses the player, restarts SoundSource, resumes (seamless, no audio spike)
-3. If no → does nothing (transition is unaffected)
-
-Also checks for the trial popup every `POPUP_POLL_INTERVAL` seconds as a fallback
-(catches songs longer than 20 minutes).
-
-```
-[new song] → [elapsed + duration > threshold?] → [pause] → [restart SS] → [resume]
-                          ↓ no
-                       (nothing)
-```
-
-Works with any player that supports the macOS NowPlaying API (Tidal, Spotify, Apple Music, etc.).
-
-### Without `media-control` (fallback)
-
-Polls the macOS Accessibility API for the SoundSource trial dialog every `POPUP_POLL_INTERVAL`
-seconds, and restarts the moment it appears.
-
-**Requires:** Terminal (or your shell) listed under **System Settings → Privacy & Security → Accessibility**.
-
-> On USB DACs that ignore macOS software volume control, a brief audio spike may be audible in
-> this mode since the player cannot be paused. Install `media-control` to avoid this.
-
----
+With `media-control`, the script restarts SoundSource *before* the noise ever fires, pausing your
+player during the restart so the transition is completely seamless. The only exception is songs
+longer than 20 minutes — the script can't wait for the next track, so it pauses mid-song instead.
 
 ## Setup
 
-1. Grant Accessibility access (needed for popup detection in both modes):
+1. Clone to a **permanent location** — the installer writes the absolute path into the LaunchAgent.
+   If you move the folder later, re-run `install` to update it.
+
+2. Grant Accessibility access:
    **System Settings → Privacy & Security → Accessibility → enable Terminal**
 
-2. Install `media-control` for the best experience (seamless restarts with no audio spike):
-
+3. Optionally install `media-control` for seamless restarts (no audio spike):
    ```bash
    brew install media-control
    ```
 
-3. Install and start the service:
-
+4. Install and start:
    ```bash
-   cd /path/to/sourcesound-restart
    ./sourcesound-install.sh install
    ```
 
@@ -85,9 +39,9 @@ seconds, and restarts the moment it appears.
 
 ---
 
-## Config reference
+## Config
 
-All variables are optional. To override defaults, add them to `~/.config/sourcesound-restart/config`.
+Optional overrides in `~/.config/sourcesound-restart/config`:
 
 | Variable              | Default | Description                                                                 |
 |-----------------------|---------|-----------------------------------------------------------------------------|
@@ -100,26 +54,20 @@ All variables are optional. To override defaults, add them to `~/.config/sources
 
 ---
 
+## Resource usage
+
+The script runs as a macOS LaunchAgent (background service, starts on login, restarts on crash).
+It has negligible system impact: no CPU when idle, ~1 MB RAM. It wakes every ~8 seconds to poll
+`media-control`, does a quick calculation, then sleeps again. No network access, no elevated
+privileges, no daemons — just a bash script managed by launchd.
+
 ## Service management
 
 ```bash
-# Install and start
-./sourcesound-install.sh install
-
-# Check status + tail logs
-./sourcesound-install.sh status
-
-# Reload after config change
-./sourcesound-install.sh reload
-
-# Stop and remove from login
-./sourcesound-install.sh uninstall
+./sourcesound-install.sh install    # Install and start
+./sourcesound-install.sh status     # Check status + tail logs
+./sourcesound-install.sh reload     # Reload after config change
+./sourcesound-install.sh uninstall  # Stop and remove from login
 ```
 
----
-
-## Logs
-
-```bash
-tail -f ~/.config/sourcesound-restart/sourcesound-restart.log
-```
+Logs: `~/.config/sourcesound-restart/sourcesound-restart.log`
