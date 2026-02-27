@@ -149,10 +149,17 @@ smartrestart_mode() {
             # Checks SS uptime directly — no Accessibility permission needed.
             if ss_past_threshold; then
                 local uptime=$(( $(date +%s) - $(ss_start_epoch) ))
+                local was_playing
+                was_playing=$(media-control get 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+p = d.get('payload', d)
+print('true' if p.get('playing') else 'false')
+" 2>/dev/null || echo "false")
                 log "Time-based fallback restart (SS uptime=${uptime}s, mid-song)"
-                media-control pause 2>/dev/null || true
+                [[ "$was_playing" == "true" ]] && media-control pause 2>/dev/null || true
                 do_restart
-                media-control play 2>/dev/null || true
+                [[ "$was_playing" == "true" ]] && media-control play 2>/dev/null || true
                 # Fetch current song to prevent immediate proactive re-restart for the same song
                 last_track=$(media-control get 2>/dev/null | python3 -c "
 import sys, json
@@ -193,12 +200,18 @@ print(int(p.get('duration') or 0))
             threshold=$(( TRIAL_INTERVAL - RESTART_MARGIN ))
 
             if (( elapsed + duration > threshold )); then
-                # Only pause when a restart is actually needed
-                media-control pause 2>/dev/null || true
+                local was_playing
+                was_playing=$(media-control get 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+p = d.get('payload', d)
+print('true' if p.get('playing') else 'false')
+" 2>/dev/null || echo "false")
+                [[ "$was_playing" == "true" ]] && media-control pause 2>/dev/null || true
                 log "Proactive restart before: \"${current_track}\""
                 log "  elapsed=${elapsed}s + song=${duration}s = $(( elapsed + duration ))s > ${threshold}s threshold"
                 do_restart
-                media-control play 2>/dev/null || true
+                [[ "$was_playing" == "true" ]] && media-control play 2>/dev/null || true
             fi
         done 3< <(media-control stream)
         sleep 5
