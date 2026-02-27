@@ -59,25 +59,12 @@ print(int(time.time()) - e)
 " 2>/dev/null || date +%s
 }
 
-has_soundsource_popup() {
-    local result
-    result=$(osascript 2>/dev/null <<'APPLESCRIPT'
-tell application "System Events"
-    if not (exists process "SoundSource") then return "false"
-    tell process "SoundSource"
-        repeat with w in windows
-            try
-                repeat with b in (every button of w)
-                    if name of b = "Purchase SoundSource" then return "true"
-                end repeat
-            end try
-        end repeat
-    end tell
-end tell
-return "false"
-APPLESCRIPT
-    )
-    [[ "$result" == "true" ]]
+ss_past_threshold() {
+    is_soundsource_running || return 1
+    local uptime threshold
+    uptime=$(( $(date +%s) - $(ss_start_epoch) ))
+    threshold=$(( TRIAL_INTERVAL - RESTART_MARGIN ))
+    (( uptime > threshold ))
 }
 
 # Parse title and duration from a media-control JSON line (stdin).
@@ -158,11 +145,11 @@ smartrestart_mode() {
                 break
             fi
 
-            # ── Popup fallback (for songs longer than 20 min) ──────────────────
-            # Detects the trial popup specifically via the "Purchase SoundSource" button.
-            # Safe to check at any time — will not false-positive on settings/PEQ windows.
-            if is_soundsource_running && has_soundsource_popup; then
-                log "Trial popup detected — restarting SoundSource"
+            # ── Time-based fallback (for songs longer than 20 min) ────────────
+            # Checks SS uptime directly — no Accessibility permission needed.
+            if ss_past_threshold; then
+                local uptime=$(( $(date +%s) - $(ss_start_epoch) ))
+                log "Time-based fallback restart (SS uptime=${uptime}s, mid-song)"
                 media-control pause 2>/dev/null || true
                 do_restart
                 media-control play 2>/dev/null || true
@@ -214,42 +201,18 @@ print(int(p.get('duration') or 0))
 
 # ── Popup-only mode ───────────────────────────────────────────────────────────
 popup_mode() {
-    log "media-control not found — falling back to popup detection only"
+    log "media-control not found — falling back to time-based restart"
     log "  Install with: brew install media-control"
-    log "  poll: ${POPUP_POLL_INTERVAL}s, cooldown: ${POPUP_COOLDOWN}s"
-
-    local probe
-    probe=$(osascript 2>&1 <<'APPLESCRIPT'
-tell application "System Events"
-    return name of first process whose name is "loginwindow"
-end tell
-APPLESCRIPT
-    )
-    if [[ "$probe" != "loginwindow" ]]; then
-        log "WARNING: Accessibility access may not be granted."
-        log "  → System Settings → Privacy & Security → Accessibility → enable Terminal"
-    fi
-
-    local last_restart=0
+    log "  threshold: ${TRIAL_INTERVAL}s trial - ${RESTART_MARGIN}s margin = $(( TRIAL_INTERVAL - RESTART_MARGIN ))s"
+    log "  poll: ${POPUP_POLL_INTERVAL}s"
 
     while true; do
         sleep "$POPUP_POLL_INTERVAL"
 
-        if ! is_soundsource_running; then
-            continue
-        fi
-
-        local now
-        now=$(date +%s)
-        local since_restart=$(( now - last_restart ))
-        if (( last_restart > 0 && since_restart < POPUP_COOLDOWN )); then
-            continue
-        fi
-
-        if has_soundsource_popup; then
-            log "Trial popup detected — restarting SoundSource"
+        if ss_past_threshold; then
+            local uptime=$(( $(date +%s) - $(ss_start_epoch) ))
+            log "Time-based restart (SS uptime=${uptime}s)"
             do_restart
-            last_restart=$(date +%s)
         fi
     done
 }

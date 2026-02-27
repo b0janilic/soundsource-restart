@@ -9,8 +9,8 @@ restart the app. If you use parametric EQ with a negative preamp (e.g. for EQ co
 restart causes a volume spike — the PEQ is momentarily inactive while SoundSource relaunches, and
 USB DACs that ignore macOS software volume control have no way to compensate.
 
-Without `media-control`, this script automates exactly what you'd do manually: waits for the trial
-popup, restarts SoundSource. Same result, no human needed — but the volume spike still applies.
+Without `media-control`, this script polls SoundSource's uptime and restarts it just before the
+trial window ends. Same result, no human needed — but the volume spike still applies.
 
 With `media-control`, the script restarts SoundSource *before* the noise ever fires, pausing your
 player during the restart so the transition is completely seamless. The only exception is songs
@@ -21,15 +21,12 @@ longer than 20 minutes — the script can't wait for the next track, so it pause
 1. Clone to a **permanent location** — the installer writes the absolute path into the LaunchAgent.
    If you move the folder later, re-run `install` to update it.
 
-2. Grant Accessibility access:
-   **System Settings → Privacy & Security → Accessibility → enable Terminal**
-
-3. Optionally install `media-control` for seamless restarts (no audio spike):
+2. Optionally install `media-control` for seamless restarts (no audio spike):
    ```bash
    brew install media-control
    ```
 
-4. Install and start:
+3. Install and start:
    ```bash
    ./sourcesound-install.sh install
    ```
@@ -49,8 +46,7 @@ Optional overrides in `~/.config/sourcesound-restart/config`:
 | `RESTART_MARGIN`      | `90`    | Restart this many seconds before the trial window ends.                     |
 | `RESTART_DELAY`       | `3`     | Seconds to wait after killing SoundSource before relaunching.               |
 | `MUTE_EXTRA_WAIT`     | `0`     | Extra seconds paused after relaunch (increase if PEQ/plugin init is slow).  |
-| `POPUP_POLL_INTERVAL` | `3`     | Seconds between popup checks (both modes).                                  |
-| `POPUP_COOLDOWN`      | `300`   | Fallback popup mode only: seconds to skip checks after a restart.           |
+| `POPUP_POLL_INTERVAL` | `3`     | Seconds between uptime checks (both modes).                                 |
 
 ---
 
