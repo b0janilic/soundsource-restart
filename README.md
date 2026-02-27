@@ -67,3 +67,13 @@ privileges, no daemons — just a bash script managed by launchd.
 ```
 
 Logs: `~/.config/sourcesound-restart/sourcesound-restart.log`
+
+---
+
+## Disclaimer
+
+This project does not modify SoundSource or bypass any licensing mechanism.
+It simply automates restarting the application using standard macOS mechanisms (launchd, `pkill`, `open`).
+
+If you find SoundSource useful, please support Rogue Amoeba by purchasing a license:
+https://rogueamoeba.com/soundsource/

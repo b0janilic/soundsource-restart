@@ -18,6 +18,11 @@ install() {
     mkdir -p "$CONFIG_DIR"
     green "✓ Config directory: $CONFIG_DIR"
 
+    if [[ ! -f "$SCRIPT" ]]; then
+        red "Error: script not found at $SCRIPT"
+        red "Run this installer from the repository directory."
+        exit 1
+    fi
     chmod +x "$SCRIPT"
     green "✓ Script is executable"
 
@@ -66,7 +71,7 @@ EOF
     green "✓ LaunchAgent plist generated: $PLIST"
 
     # Load the LaunchAgent
-    if launchctl list "$LABEL" &>/dev/null 2>&1; then
+    if launchctl list "$LABEL" &>/dev/null; then
         yellow "Service already loaded — reloading..."
         launchctl unload "$PLIST" 2>/dev/null || true
     fi
@@ -81,16 +86,18 @@ EOF
 
 uninstall() {
     yellow "=== Uninstalling SourceSound restart service ==="
-    launchctl unload "$PLIST" 2>/dev/null && green "✓ Service stopped and unloaded" || true
-    yellow "Files kept in place. Remove manually if desired:"
+    launchctl unload "$PLIST" 2>/dev/null || true
+    green "✓ Service stopped and unloaded"
+    rm -f "$PLIST"
+    green "✓ LaunchAgent plist removed"
+    yellow "Config and logs kept in place. Remove manually if desired:"
     yellow "  $SCRIPT"
-    yellow "  $PLIST"
     yellow "  $CONFIG_DIR/"
 }
 
 status() {
     echo "── Service status ──────────────────────────────"
-    if launchctl list "$LABEL" &>/dev/null 2>&1; then
+    if launchctl list "$LABEL" &>/dev/null; then
         green "RUNNING"
         launchctl list "$LABEL"
     else
