@@ -21,7 +21,8 @@ longer than 20 minutes — the script can't wait for the next track, so it pause
 ### Option 1: Homebrew (recommended)
 
 ```bash
-brew install ./Formula/sourcesound-restart.rb
+brew tap b0janilic/sourcesound-restart https://github.com/b0janilic/soundsource-restart.git
+brew install sourcesound-restart
 ```
 
 This installs the script and sets up the LaunchAgent automatically on first install.
