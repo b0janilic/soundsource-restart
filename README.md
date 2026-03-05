@@ -18,18 +18,31 @@ longer than 20 minutes — the script can't wait for the next track, so it pause
 
 ## Setup
 
+### Option 1: Homebrew (recommended)
+
+```bash
+brew install ./Formula/sourcesound-restart.rb
+```
+
+This installs the script and sets up the LaunchAgent automatically on first install.
+
+### Option 2: Manual install
+
 1. Clone to a **permanent location** — the installer writes the absolute path into the LaunchAgent.
    If you move the folder later, re-run `install` to update it.
 
-2. Optionally install `media-control` for seamless restarts (no audio spike):
-   ```bash
-   brew install media-control
-   ```
-
-3. Install and start:
+2. Install and start:
    ```bash
    ./sourcesound-install.sh install
    ```
+
+### Either way: Install `media-control` for seamless restarts
+
+```bash
+brew install media-control
+```
+
+This enables pause-during-restart behavior, eliminating the audio spike. Without it, the script falls back to uptime-based detection (audio spike still occurs).
 
 > SoundSource should be in **System Settings → General → Login Items** so it relaunches
 > automatically after being killed.
