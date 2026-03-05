@@ -105,6 +105,9 @@ do_restart() {
     if (( MUTE_EXTRA_WAIT > 0 )); then
         sleep "$MUTE_EXTRA_WAIT"
     fi
+
+    # Extra delay to allow media-control stream to recover after SS restart
+    sleep 2
 }
 
 # ── Smart restart mode (media-control) ────────────────────────────────────────
