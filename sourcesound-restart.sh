@@ -218,6 +218,55 @@ print('true' if p.get('playing') else 'false')
                 [[ "$was_playing" == "true" ]] && media-control play 2>/dev/null || true
             fi
         done 3< <(media-control stream)
+
+        # Stream disconnected — fallback to polling media-control get
+        log "Falling back to polling (stream unreliable on this system)"
+        for (( i=0; i<10; i++ )); do
+            sleep "$POPUP_POLL_INTERVAL"
+
+            local current_track duration elapsed threshold now
+            current_track=$(media-control get 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+p = d.get('payload', d)
+print(p.get('title') or '')
+" 2>/dev/null || echo "")
+
+            [[ -z "$current_track" ]] && continue
+            [[ "$current_track" == "$last_track" ]] && continue
+
+            # New song detected via polling
+            last_track="$current_track"
+            log "New song detected (via polling): \"${current_track}\""
+
+            duration=$(media-control get 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+p = d.get('payload', d)
+print(int(p.get('duration') or 0))
+" 2>/dev/null || echo "0")
+
+            now=$(date +%s)
+            elapsed=$(( now - $(ss_start_epoch) ))
+            threshold=$(( TRIAL_INTERVAL - RESTART_MARGIN ))
+
+            if (( elapsed + duration > threshold )); then
+                local was_playing
+                was_playing=$(media-control get 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+p = d.get('payload', d)
+print('true' if p.get('playing') else 'false')
+" 2>/dev/null || echo "false")
+                [[ "$was_playing" == "true" ]] && media-control pause 2>/dev/null || true
+                log "Proactive restart before: \"${current_track}\" (polling)"
+                log "  elapsed=${elapsed}s + song=${duration}s = $(( elapsed + duration ))s > ${threshold}s threshold"
+                do_restart
+                last_restart_time=$(date +%s)
+                [[ "$was_playing" == "true" ]] && media-control play 2>/dev/null || true
+            fi
+        done
+
         sleep 5
     done
 }
