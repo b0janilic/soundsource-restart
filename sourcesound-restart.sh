@@ -107,7 +107,7 @@ do_restart() {
     fi
 
     # Extra delay to allow media-control stream to recover after SS restart
-    sleep 2
+    sleep 5
 }
 
 # ── Smart restart mode (media-control) ────────────────────────────────────────
