@@ -134,9 +134,8 @@ smartrestart_mode() {
     fi
 
     local last_track=""
-    local last_stream_start=0
+    local last_restart_time=0
     while true; do
-        last_stream_start=$(date +%s)
         while true; do
             local line="" read_status=0
             # read exit codes: 0 = got data, 1 = EOF (stream died), >128 = timeout (normal)
@@ -149,9 +148,9 @@ smartrestart_mode() {
 
             # ── Time-based fallback (for songs longer than 20 min) ────────────
             # Checks SS uptime directly — no Accessibility permission needed.
-            # Skip fallback if stream was just recently started (grace period for reconnect)
-            local stream_age=$(( $(date +%s) - last_stream_start ))
-            if ss_past_threshold && (( stream_age > 10 )); then
+            # Skip fallback for 20s after restart to avoid repeated restarts during stream turbulence
+            local time_since_restart=$(( $(date +%s) - last_restart_time ))
+            if ss_past_threshold && (( time_since_restart > 20 )); then
                 local uptime=$(( $(date +%s) - $(ss_start_epoch) ))
                 local was_playing
                 was_playing=$(media-control get 2>/dev/null | python3 -c "
@@ -163,6 +162,7 @@ print('true' if p.get('playing') else 'false')
                 log "Time-based fallback restart (SS uptime=${uptime}s, mid-song)"
                 [[ "$was_playing" == "true" ]] && media-control pause 2>/dev/null || true
                 do_restart
+                last_restart_time=$(date +%s)
                 [[ "$was_playing" == "true" ]] && media-control play 2>/dev/null || true
                 # Fetch current song to prevent immediate proactive re-restart for the same song
                 last_track=$(media-control get 2>/dev/null | python3 -c "
