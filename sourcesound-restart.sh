@@ -134,7 +134,9 @@ smartrestart_mode() {
     fi
 
     local last_track=""
+    local last_stream_start=0
     while true; do
+        last_stream_start=$(date +%s)
         while true; do
             local line="" read_status=0
             # read exit codes: 0 = got data, 1 = EOF (stream died), >128 = timeout (normal)
@@ -147,7 +149,9 @@ smartrestart_mode() {
 
             # ── Time-based fallback (for songs longer than 20 min) ────────────
             # Checks SS uptime directly — no Accessibility permission needed.
-            if ss_past_threshold; then
+            # Skip fallback if stream was just recently started (grace period for reconnect)
+            local stream_age=$(( $(date +%s) - last_stream_start ))
+            if ss_past_threshold && (( stream_age > 10 )); then
                 local uptime=$(( $(date +%s) - $(ss_start_epoch) ))
                 local was_playing
                 was_playing=$(media-control get 2>/dev/null | python3 -c "
