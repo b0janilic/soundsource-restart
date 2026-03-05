@@ -75,7 +75,7 @@ mc_parse() {
 import sys, json
 try:
     d = json.load(sys.stdin)
-    p = d.get('payload', {})
+    p = d.get('payload', d)
     print(p.get('title') or '')
     print(int(p.get('duration') or 0))
 except Exception:
